@@ -3,7 +3,6 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=cwmp
 
 PKG_LICENSE:=GPLv2
-PKG_VERSION:=$(shell git show -s --format=%cd --date=short)
 PKG_RELEASE:=1
 
 PKG_FILE_DEPENDS:=$(CURDIR)/../..
