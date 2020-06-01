@@ -8,6 +8,7 @@ config acs acs
 config cpe cpe
 	option default_wan_interface wan
 	option port '8080'
+	option path 'connreq'
 	option userid '_user'
 	option passwd '_password'
 	option instance_mode 'InstanceNumber'

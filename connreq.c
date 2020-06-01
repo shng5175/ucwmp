@@ -30,12 +30,12 @@
 	__digest_field(nonce) \
 	__digest_field(uri) \
 	__digest_field(response) \
-	__digest_field(cnonce) \
-	__digest_field(algorithm)
+	__digest_field(cnonce)
 
 #define __digest_fields_unquoted \
 	__digest_field(qop) \
-	__digest_field(nc)
+	__digest_field(nc) \
+	__digest_field(algorithm)
 
 #define __digest_fields \
 	__digest_fields_quoted \
@@ -115,7 +115,7 @@ static bool digest_parse_fields(char *str, char **tb)
 
 	memset(tb, 0, __DIGEST_FIELDS * sizeof(tb));
 
-	while (*str) {
+	while (str && *str) {
 		while (isspace(*str))
 			str++;
 
@@ -142,7 +142,7 @@ static bool digest_parse_fields(char *str, char **tb)
 	return true;
 }
 
-static void fill_connection_request(void)
+static int fill_connection_request(void)
 {
 	char *auth = getenv("HTTP_AUTHORIZATION");
 	const char *method = getenv("REQUEST_METHOD");
@@ -152,21 +152,24 @@ static void fill_connection_request(void)
 	char *type;
 	int i;
 
-	if (!auth || !uri || !method)
-		return;
+	if (!uri || !method)
+		return -1;
+
+	if (!auth)
+		return 0;
 
 	type = strsep(&auth, " ");
 	if (!type)
-		return;
+		return 0;
 
 	if (strcasecmp(type, "digest") != 0)
-		return;
+		return 0;
 
 	if (!digest_parse_fields(auth, fields))
-		return;
+		return 0;
 
 	if (strcmp(uri, fields[DIGEST_uri]) != 0)
-		return;
+		return 0;
 
 	for (i = 0; i < __DIGEST_FIELDS; i++) {
 		if (!fields[i])
@@ -174,6 +177,7 @@ static void fill_connection_request(void)
 
 		blobmsg_add_string(&b, digest_field_names[i], fields[i]);
 	}
+	return 0;
 }
 
 enum {
@@ -218,12 +222,15 @@ static void http_validate(struct ubus_context *ctx)
 	uint32_t cwmp_id;
 
 	blob_buf_init(&b, 0);
-	fill_connection_request();
+
+	if (fill_connection_request())
+		goto out;
 
 	ubus_lookup_id(ctx, "cwmp", &cwmp_id);
 	ubus_invoke(ctx, cwmp_id, "connection_request", b.head, cwmpd_cb, NULL, 0);
 
 	if (!data_ok)
+out:
 		printf("Status: 500 Internal Server Error\n\n");
 }
 
