@@ -255,6 +255,12 @@ static void cwmp_data_eof(struct uclient *cl)
 	}
 }
 
+static void cwmp_header_done(struct uclient *cl)
+{
+	if (cl->status_code == 401)
+		cwmp_data_eof(cl);
+}
+
 static void cwmp_error(struct uclient *cl, int code)
 {
 	fprintf(stderr, "Got uclient error: %s\n", uclient_strerror(code));
@@ -288,6 +294,7 @@ static int cwmp_connect(void)
 	static struct uclient_cb cwmp_cb = {
 		.data_read = cwmp_data_read,
 		.data_eof = cwmp_data_eof,
+		.header_done = cwmp_header_done,
 		.error = cwmp_error,
 	};
 	char *auth_str;
