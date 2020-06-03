@@ -203,12 +203,12 @@ static void cwmp_process_pending_cmd(void)
 
 static void session_cb(struct uloop_process *c, int ret)
 {
-	cwmp_process_pending_cmd();
-	cwmp_download_check_pending(true);
-
 	if (debug_level)
 		fprintf(stderr, "Session completed (rc: %d success: %d)\n",
 			ret, session_success);
+
+	cwmp_process_pending_cmd();
+	cwmp_download_check_pending(true);
 
 	if (ret == 0) {
 		cwmp_clear_pending_events();
@@ -443,9 +443,9 @@ void cwmp_reload(bool acs_changed)
 {
 	if (acs_changed) {
 		/* all other events get cleard when bootstrap is set
+		 * and cwmp_flag_event() triggers a new session.
 		 */
 		cwmp_flag_event("0 BOOTSTRAP", NULL, NULL);
-		cwmp_schedule_session(1);
 	}
 	cwmp_update_session_timer(false);
 }
