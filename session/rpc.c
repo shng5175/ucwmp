@@ -528,7 +528,6 @@ static int cwmp_handle_get_rpc_methods(struct rpc_data *data)
 
 static int cwmp_inform_response(struct rpc_data *data)
 {
-	cwmp_clear_pending_events();
 	return 0;
 }
 

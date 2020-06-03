@@ -160,7 +160,7 @@ void cwmp_download_apply_exec(const char *path, const char *type, const char *fi
 
 static void cwmp_run_session(void)
 {
-	char *ev;
+	char *ev = cwmp_get_event_str(true);
 	int pid;
 
 	session_pending = false;
@@ -169,18 +169,18 @@ static void cwmp_run_session(void)
 	pid = fork();
 	if (pid < 0) {
 		perror("fork");
+		free(ev);
 		return;
 	}
 
 	if (pid > 0) {
+		free(ev);
 		session_proc.pid = pid;
 		uloop_process_add(&session_proc);
 		return;
 	}
 
-	ev = cwmp_get_event_str(true);
 	cwmp_exec_session(ev);
-	free(ev);
 }
 
 static void cwmp_process_pending_cmd(void)
@@ -210,10 +210,14 @@ static void session_cb(struct uloop_process *c, int ret)
 		fprintf(stderr, "Session completed (rc: %d success: %d)\n",
 			ret, session_success);
 
-	if (ret)
+	if (ret == 0) {
+		cwmp_clear_pending_events();
+
+		if (session_pending)
+			cwmp_schedule_session(1);
+	} else {
 		cwmp_schedule_session(CWMP_SESSION_ERR_RETRY_MSEC);
-	else if (session_pending)
-		cwmp_schedule_session(1);
+	}
 }
 
 static void __cwmp_run_session(struct uloop_timeout *timeout)
@@ -241,20 +245,26 @@ void cwmp_schedule_session(int delay_msec)
 	uloop_timeout_set(&timer, delay_msec);
 }
 
-static void cwmp_update_session_timer(void)
+static void cwmp_update_session_timer(bool now)
 {
-	if (config.acs.periodic_interval && config.acs.periodic_enabled)
-		uloop_timeout_set(&session_timer,
-				config.acs.periodic_interval * 1000);
+	unsigned delay_msec;
+
+	if (now)
+		delay_msec = 1;
+	else
+		delay_msec = config.acs.periodic_interval * 1000;
+
+	if (delay_msec && config.acs.periodic_enabled)
+		uloop_timeout_set(&session_timer, delay_msec);
 	else
 		uloop_timeout_cancel(&session_timer);
 }
 
 static void __cwmp_session_timer(struct uloop_timeout *timeout)
 {
-	cwmp_schedule_session(1);
 	cwmp_flag_event("2 PERIODIC", NULL, NULL);
-	cwmp_update_session_timer();
+	cwmp_schedule_session(1);
+	cwmp_update_session_timer(false);
 }
 
 void cwmp_save_cache(bool immediate)
@@ -431,13 +441,19 @@ static int parse_args(int argc, char **argv)
 
 void cwmp_reload(bool acs_changed)
 {
-	if (acs_changed)
-		__cwmp_session_timer(&session_timer);
+	if (acs_changed) {
+		/* all other events get cleard when bootstrap is set
+		 */
+		cwmp_flag_event("0 BOOTSTRAP", NULL, NULL);
+		cwmp_schedule_session(1);
+	}
+	cwmp_update_session_timer(false);
 }
 
 int main(int argc, char **argv)
 {
 	int rc;
+	bool inform_now;
 
 	rc = parse_args(argc, argv);
 	if (rc < 0) {
@@ -457,8 +473,15 @@ int main(int argc, char **argv)
 	cwmp_load_startup(CWMP_STARTUP_FILE);
 
 	uloop_timeout_cancel(&save_cache);
-	cwmp_schedule_session(1);
-	cwmp_update_session_timer();
+
+	if (cwmp_state_has_events()) {
+		cwmp_schedule_session(1);
+		inform_now = false;
+	} else {
+		inform_now = true;
+	}
+
+	cwmp_update_session_timer(inform_now);
 	uloop_run();
 	uloop_done();
 

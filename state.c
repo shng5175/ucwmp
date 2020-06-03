@@ -88,7 +88,7 @@ void cwmp_state_get_events(struct blob_buf *buf, bool pending)
 {
 	struct event_multi **tail = &event_multi_pending;
 	struct event_multi *cur = *tail;
-	unsigned int cur_pending;
+	unsigned long cur_pending;
 	int i;
 
 	cur_pending = event_pending | event_flagged;
