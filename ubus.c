@@ -75,6 +75,16 @@ static const struct blobmsg_policy cfg_policy[__CFG_MAX] = {
 	[CFG_CWMP_DEBUG] = { "debug", BLOBMSG_TYPE_INT32 }
 };
 
+static const struct blobmsg_policy event_policy[] = {
+	{ .name = "event", .type = BLOBMSG_TYPE_STRING },
+	{ .name = "commandkey", .type = BLOBMSG_TYPE_STRING },
+	{ .name = "data", .type = BLOBMSG_TYPE_TABLE },
+};
+
+static const struct blobmsg_policy reboot_policy[] = {
+	{ .name = "commandkey", .type = BLOBMSG_TYPE_STRING },
+};
+
 static void conn_req_challenge(void)
 {
 	time_t cur = time(NULL);
@@ -158,12 +168,6 @@ cwmp_event_sent(struct ubus_context *ctx, struct ubus_object *obj,
 	return 0;
 }
 
-static const struct blobmsg_policy event_policy[] = {
-	{ .name = "event", .type = BLOBMSG_TYPE_STRING },
-	{ .name = "commandkey", .type = BLOBMSG_TYPE_STRING },
-	{ .name = "data", .type = BLOBMSG_TYPE_TABLE },
-};
-
 static int
 cwmp_event_add(struct ubus_context *ctx, struct ubus_object *obj,
 	       struct ubus_request_data *req, const char *method,
@@ -229,6 +233,15 @@ cwmp_reboot(struct ubus_context *ctx, struct ubus_object *obj,
 	    struct ubus_request_data *req, const char *method,
 	    struct blob_attr *msg)
 {
+	struct blob_attr *tb[ARRAY_SIZE(reboot_policy)];
+	const char *cmd_key = NULL;
+
+	blobmsg_parse(reboot_policy, ARRAY_SIZE(reboot_policy),
+			tb, blobmsg_data(msg), blobmsg_data_len(msg));
+	if (tb[0])
+		cmd_key = blobmsg_get_string(tb[0]);
+
+	cwmp_flag_event("M Reboot", cmd_key, NULL);
 	pending_cmd = CMD_REBOOT;
 	return 0;
 }
@@ -294,7 +307,7 @@ static struct ubus_method cwmp_methods[] = {
 			 (1 << CWMP_DL_URL)),
 
 	UBUS_METHOD_NOARG("factory_reset", cwmp_factory_reset),
-	UBUS_METHOD_NOARG("reboot", cwmp_reboot),
+	UBUS_METHOD("reboot", cwmp_reboot, reboot_policy),
 	UBUS_METHOD_NOARG("set_config", cwmp_set_config),
 
 	UBUS_METHOD_NOARG("session_completed", cwmp_session_completed),

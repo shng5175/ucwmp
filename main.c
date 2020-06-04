@@ -192,7 +192,6 @@ static void cwmp_process_pending_cmd(void)
 		cmd = CWMP_SCRIPT_DIR "/factory-reset.sh";
 		break;
 	case CMD_REBOOT:
-		cwmp_flag_event("M Reboot", NULL, NULL);
 		cmd = CWMP_SCRIPT_DIR "/reboot.sh";
 		break;
 	default:

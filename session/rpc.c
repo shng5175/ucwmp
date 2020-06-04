@@ -435,9 +435,23 @@ static int cwmp_handle_factory_reset(struct rpc_data *data)
 
 static int cwmp_handle_reboot(struct rpc_data *data)
 {
-	cwmp_invoke_noarg("reboot");
-	roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:RebootResponse", NULL);
-	return 0;
+	struct blob_buf b = {};
+	char *str;
+	const unsigned maxlen = CWMP_COMMAND_KEY_MAXLEN;
+	int ret;
+
+	blob_buf_init(&b, 0);
+	str = blobmsg_alloc_string_buffer(&b, "commandkey", maxlen);
+	__soap_get_field(data->in, "CommandKey", str, maxlen);
+	blobmsg_add_string_buffer(&b);
+
+	ret = cwmp_invoke("reboot", b.head);
+	blob_buf_free(&b);
+
+	if (ret == 0)
+		roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:RebootResponse", NULL);
+
+	return ret;
 }
 
 static int cwmp_handle_download(struct rpc_data *data)

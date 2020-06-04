@@ -15,12 +15,14 @@
 #include <libubox/blobmsg_json.h>
 
 #include "state.h"
+#include "strncpyt.h"
+#include "ucwmp.h"
 
 struct event_multi {
 	struct event_multi *next;
 	enum cwmp_event_multi idx;
 	struct blob_attr *data;
-	char command_key[];
+	char command_key[CWMP_COMMAND_KEY_MAXLEN];
 };
 
 static const char *event_codes[__EVENT_MAX] = {
@@ -162,7 +164,7 @@ void cwmp_flag_event(const char *id, const char *command_key, struct blob_attr *
 		ev->idx = i;
 		if (data)
 			ev->data = memcpy(extra, data, blob_pad_len(data));
-		strcpy(ev->command_key, command_key);
+		strncpyt(ev->command_key, command_key, sizeof(ev->command_key));
 
 		ev->next = event_multi_flagged;
 		event_multi_flagged = ev;
