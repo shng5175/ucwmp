@@ -299,6 +299,13 @@ static int usp_get_parameter_names(struct cwmp_iterator *it, bool next_level)
 			uspd.buf.head, get_cb, &req, 10000);
 	if (err) {
 		err_ubus(err, "ubus_invoke " USP_UBUS " get path=%s", it->path);
+		if (err == UBUS_STATUS_INVALID_ARGUMENT)
+			/* uspd responds with -EINVAL when the path fails basic checks
+			 */
+			it->error = CWMP_ERROR_INVALID_PARAM;
+		else
+			it->error = CWMP_ERROR_INTERNAL_ERROR;
+
 		uspd.prepared = 0;
 	}
 	return req.n_values;
