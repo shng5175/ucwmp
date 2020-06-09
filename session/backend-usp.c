@@ -293,6 +293,7 @@ static int usp_get_parameter_names(struct cwmp_iterator *it, bool next_level)
 	blob_buf_init(&uspd.buf, 0);
 	blobmsg_add_string(&uspd.buf, "path", it->path);
 	blobmsg_add_string(&uspd.buf, "proto", "cwmp");
+	blobmsg_add_u8(&uspd.buf, "next-level", next_level);
 
 	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "object_names",
 			uspd.buf.head, get_cb, &req, 10000);
