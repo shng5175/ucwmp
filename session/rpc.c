@@ -75,7 +75,10 @@ static bool cwmp_complete_path(char *path)
 	const unsigned len = strlen(path);
 	bool partial = false;
 
-	if (path[0] == '.' || path[0] == 0) {
+	if (len == 0) {
+		sprintf(path, "%s.", CWMP_ROOT_OBJECT);
+		partial = true;
+	} else if (path[0] == '.') {
 		memcpy(buf, path, len + 1);
 		if (len + sizeof(CWMP_ROOT_OBJECT) < CWMP_PATH_LEN)
 			sprintf(path, "%s%s", CWMP_ROOT_OBJECT, buf);
@@ -296,10 +299,9 @@ static int cwmp_handle_get_parameter_attributes(struct rpc_data *data)
 
 	while (soap_array_iterate_contents(&cur, "string", &str)) {
 		bool partial;
-		int len;
 
-		len = snprintf(it.path, sizeof(it.path), "%s", str);
-		partial = str[len - 1] == '.';
+		strncpy(it.path, str, sizeof(it.path));
+		partial = cwmp_complete_path(it.path);
 
 		n += cwmp_path_iterate(&it, partial);
 	}
