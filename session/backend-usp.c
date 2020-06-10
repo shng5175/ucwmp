@@ -210,10 +210,12 @@ static void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
 	enum {
 		P_STATUS,
+		P_FAULT,
 		__P_MAX
 	};
 	static const struct blobmsg_policy p[] = {
 		{ "status", BLOBMSG_TYPE_INT8 },
+		{ "fault", BLOBMSG_TYPE_INT32 }
 	};
 	struct uspd_set_req *r = req->priv;
 	struct blob_attr *cur;
@@ -235,6 +237,9 @@ static void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 
 			if (status_ok)
 				r->error = 0;
+
+			if (tb[P_FAULT])
+				r->error = blobmsg_get_u32(tb[P_FAULT]);
 		} else {
 			err("missing 'status' field in response for set, %s = %s\n",
 				r->path, r->value);
