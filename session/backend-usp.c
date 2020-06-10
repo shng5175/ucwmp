@@ -181,17 +181,18 @@ static void get_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 					u.param.value);
 		} else {
 			struct blob_attr *tb_fault[__P_FAULT_MAX];
+			struct blob_attr *tb_cur;
 			const char *path = "";
 			int fault = 0;
 
 			blobmsg_parse(p_fault, __P_FAULT_MAX, tb_fault,
 					blobmsg_data(cur), blobmsg_len(cur));
 
-			if ((cur = tb_fault[P_FAULT_PATH]))
-				path = blobmsg_get_string(cur);
+			if ((tb_cur = tb_fault[P_FAULT_PATH]))
+				path = blobmsg_get_string(tb_cur);
 
-			if ((cur = tb_fault[P_FAULT_FAULT]))
-				fault = blobmsg_get_u32(cur);
+			if ((tb_cur = tb_fault[P_FAULT_FAULT]))
+				fault = blobmsg_get_u32(tb_cur);
 
 			cwmp_debug(1, "usp",
 				"parameter '%s' get value error '%d'\n",
