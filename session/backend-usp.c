@@ -221,6 +221,7 @@ static void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	struct blob_attr *cur;
 	struct blob_attr *params;
 	int rem;
+	int param_cnt = 0;
 
 	params = get_parameters(msg);
 	if (params == NULL)
@@ -247,7 +248,15 @@ static void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 
 		cwmp_debug(1, "usp", "parameter '%s' set value '%s' error '%d'\n",
 			  r->path, r->value, r->error);
+
+		/* No multi set parameter support yet */
+		param_cnt++;
+		break;
 	}
+
+	/* uspd returns emtpy repsonse on non existent path */
+	if (param_cnt == 0)
+		r->error = CWMP_ERROR_INVALID_PARAM;
 }
 
 static void usp_get_parameter_values_init()
