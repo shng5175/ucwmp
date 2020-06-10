@@ -186,6 +186,7 @@ static void cwmp_run_session(void)
 static void cwmp_process_pending_cmd(void)
 {
 	const char *cmd;
+	bool do_exit = false;
 
 	switch (pending_cmd) {
 	case CMD_FACTORY_RESET:
@@ -193,12 +194,20 @@ static void cwmp_process_pending_cmd(void)
 		break;
 	case CMD_REBOOT:
 		cmd = CWMP_SCRIPT_DIR "/reboot.sh";
+		do_exit = true;
 		break;
 	default:
 		return;
 	}
 
 	system(cmd);
+
+	/* avoid any session scheduling while system shutdown
+	 */
+	if (do_exit) {
+		cwmp_save_cache(true);
+		exit(0);
+	}
 }
 
 static void session_cb(struct uloop_process *c, int ret)
