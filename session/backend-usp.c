@@ -265,7 +265,7 @@ static void usp_get_parameter_values_init()
 	uspd.array = blobmsg_open_array(&uspd.buf, "paths");
 }
 
-static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
+static int usp_get_parameter(node_t *node, cwmp_iterator_cb cb, const char *method)
 {
 	struct uspd_get_req req;
 	struct cwmp_iterator it = { .cb = cb, .node = node };
@@ -280,13 +280,23 @@ static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
 
 	blobmsg_add_string(&uspd.buf, "proto", "cwmp");
 
-	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "get_safe",
+	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, method,
 			uspd.buf.head, get_cb, &req, 10000);
 	if (err) {
-		err_ubus(err, "ubus_invoke " USP_UBUS " get_safe");
+		err_ubus(err, "ubus_invoke " USP_UBUS " %s", method);
 		uspd.prepared = 0;
 	}
 	return req.n_values;
+}
+
+static int usp_get_parameter_attributes(node_t *node, cwmp_iterator_cb cb)
+{
+	return usp_get_parameter(node, cb, "get_attributes");
+}
+
+static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
+{
+	return usp_get_parameter(node, cb, "get_safe");
 }
 
 static int usp_get_parameter_value(struct cwmp_iterator *it, bool next_level)
@@ -483,12 +493,20 @@ static int usp_del_object(const char *path, const char *key)
 const struct backend backend = {
 	.init = usp_init,
 	.deinit = usp_deinit,
+
 	.get_parameter_names = usp_get_parameter_names,
+
+	.get_parameter_values_init = usp_get_parameter_values_init,
 	.get_parameter_value = usp_get_parameter_value,
 	.set_parameter_value = usp_set_parameter_value,
 	.get_parameter_values = usp_get_parameter_values,
-	.get_parameter_values_init = usp_get_parameter_values_init,
+
+	.get_parameter_attributes_init = usp_get_parameter_values_init,
+	.get_parameter_attribute = usp_get_parameter_value,
+	.get_parameter_attributes = usp_get_parameter_attributes,
+
 	.add_object = usp_add_object,
 	.del_object = usp_del_object,
+
 	.commit = usp_commit,
 };

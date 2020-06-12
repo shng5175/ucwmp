@@ -69,6 +69,24 @@ static void add_parameter_value(struct cwmp_iterator *it, union cwmp_any *a)
 		cwmp_add_parameter_value_struct(it->node, it->path, p->value, p->type);
 }
 
+static void add_parameter_attrib(struct cwmp_iterator *it, union cwmp_any *a)
+{
+	const struct b_cwmp_param *p = &a->param;
+	const char *path = p->path ? p->path : it->path;
+	node_t *node;
+
+	node = roxml_add_node(it->node, 0, ROXML_ELM_NODE, "ParameterAttributeStruct", NULL);
+	roxml_add_node(node, 0, ROXML_ELM_NODE, "Name", (char *)path);
+	roxml_add_node(node, 0, ROXML_ELM_NODE, "Notification", (char *)p->value);
+
+#if 0
+	node = cwmp_open_array(node, "AccessList");
+	if (attr->acl_subscriber)
+		roxml_add_node(it->node, 0, ROXML_ELM_NODE, "string", "Subscriber");
+	cwmp_close_array(node, attr->acl_subscriber, "string");
+#endif
+}
+
 static bool cwmp_complete_path(char *path)
 {
 	char buf[CWMP_PATH_LEN - 32];
@@ -102,6 +120,20 @@ static int cwmp_add_parameter_value(node_t *node, const char *name)
 	strncpy(it.path, name, sizeof(it.path));
 	partial = cwmp_complete_path(it.path);
 	return backend.get_parameter_value(&it, partial);
+}
+
+static int cwmp_add_parameter_attrib(node_t *node, const char *name)
+{
+	struct cwmp_iterator it;
+	int partial;
+
+	cwmp_iterator_init(&it);
+	it.cb = add_parameter_attrib;
+	it.node = node;
+
+	strncpy(it.path, name, sizeof(it.path));
+	partial = cwmp_complete_path(it.path);
+	return backend.get_parameter_attribute(&it, partial);
 }
 
 static int cwmp_handle_get_parameter_values(struct rpc_data *data)
@@ -253,60 +285,29 @@ static int cwmp_handle_get_parameter_names(struct rpc_data *data)
 	return 0;
 }
 
-static int cwmp_add_object_attr(struct path_iterate *it, struct cwmp_object *obj, int idx)
-{
-	struct param_attr *attr;
-	node_t *node;
-	char data[4];
-
-	if (idx < 0)
-		return 0;
-
-	attr = cwmp_attr_cache_get(it->path, true);
-	if (!attr)
-		return 0;
-
-	node = roxml_add_node(it->node, 0, ROXML_ELM_NODE, "ParameterAttributeStruct", NULL);
-	roxml_add_node(node, 0, ROXML_ELM_NODE, "Name", it->path);
-
-	snprintf(data, sizeof(data), "%d", attr->notification);
-	roxml_add_node(node, 0, ROXML_ELM_NODE, "Notification", data);
-
-	node = cwmp_open_array(node, "AccessList");
-	if (attr->acl_subscriber)
-		roxml_add_node(it->node, 0, ROXML_ELM_NODE, "string", "Subscriber");
-	cwmp_close_array(node, attr->acl_subscriber, "string");
-
-	return 1;
-}
-
 static int cwmp_handle_get_parameter_attributes(struct rpc_data *data)
 {
-	struct path_iterate it = {
-		.cb = cwmp_add_object_attr
-	};
-	node_t *cur;
-	char *str;
+	node_t *node, *cur_node;
+	char *cur = NULL;
 	int ret = 0;
 	int n = 0;
 
-	cur = soap_array_start(data->in, "ParameterNames", NULL);
-	if (!cur)
+	cur_node = soap_array_start(data->in, "ParameterNames", NULL);
+	if (!cur_node)
 		return CWMP_ERROR_INVALID_PARAM;
 
-	it.node = roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:GetParameterAttributesResponse", NULL);
-	it.node = cwmp_open_array(it.node, "ParameterList");
+	node = roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:GetParameterAttributesResponse", NULL);
+	node = cwmp_open_array(node, "ParameterList");
 
-	while (soap_array_iterate_contents(&cur, "string", &str)) {
-		bool partial;
+	backend.get_parameter_attributes_init();
 
-		strncpy(it.path, str, sizeof(it.path));
-		partial = cwmp_complete_path(it.path);
+	while (soap_array_iterate_contents(&cur_node, "string", &cur))
+		n += cwmp_add_parameter_attrib(node, cur);
 
-		n += cwmp_path_iterate(&it, partial);
-	}
+	if (backend.get_parameter_attributes)
+		n = backend.get_parameter_attributes(node, add_parameter_attrib);
 
-	cwmp_close_array(it.node, n, "cwmp:ParameterAttributeStruct");
+	cwmp_close_array(node, n, "cwmp:ParameterAttributeStruct");
 
 	return ret;
 }

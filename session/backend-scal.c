@@ -533,5 +533,6 @@ const struct backend backend = {
 	.get_parameter_value = scal_get_parameter_value,
 	.set_parameter_value = scal_set_parameter_value,
 	.get_parameter_values_init = scal_get_parameter_values_init,
+	.get_parameter_attributes_init = scal_get_parameter_values_init,
 	.commit = scal_commit,
 };
