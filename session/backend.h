@@ -63,10 +63,10 @@ struct backend {
 	void (*init)(struct ubus_context *ctx);
 	void (*deinit)();
 	int (*get_parameter_names)(struct cwmp_iterator *it, bool next_level);
-	int (*get_parameter_value)(struct cwmp_iterator *it, bool next_level);
+	int (*get_parameter_value)(struct cwmp_iterator *it);
 	int (*set_parameter_value)(const char *path, const char *value);
 	int (*get_parameter_values)(node_t *node, cwmp_iterator_cb cb);
-	int (*get_parameter_attribute)(struct cwmp_iterator *it, bool next_level);
+	int (*get_parameter_attribute)(struct cwmp_iterator *it);
 	int (*get_parameter_attributes)(node_t *node, cwmp_iterator_cb cb);
 	void (*get_parameter_values_init)();
 	void (*get_parameter_attributes_init)();

@@ -299,7 +299,7 @@ static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
 	return usp_get_parameter(node, cb, "get_safe");
 }
 
-static int usp_get_parameter_value(struct cwmp_iterator *it, bool next_level)
+static int usp_get_parameter_value(struct cwmp_iterator *it)
 {
 	blobmsg_add_string(&uspd.buf, NULL, it->path);
 	return 0;

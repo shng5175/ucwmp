@@ -111,29 +111,27 @@ static bool cwmp_complete_path(char *path)
 static int cwmp_add_parameter_value(node_t *node, const char *name)
 {
 	struct cwmp_iterator it;
-	int partial;
 
 	cwmp_iterator_init(&it);
 	it.cb = add_parameter_value;
 	it.node = node;
 
 	strncpy(it.path, name, sizeof(it.path));
-	partial = cwmp_complete_path(it.path);
-	return backend.get_parameter_value(&it, partial);
+	cwmp_complete_path(it.path);
+	return backend.get_parameter_value(&it);
 }
 
 static int cwmp_add_parameter_attrib(node_t *node, const char *name)
 {
 	struct cwmp_iterator it;
-	int partial;
 
 	cwmp_iterator_init(&it);
 	it.cb = add_parameter_attrib;
 	it.node = node;
 
 	strncpy(it.path, name, sizeof(it.path));
-	partial = cwmp_complete_path(it.path);
-	return backend.get_parameter_attribute(&it, partial);
+	cwmp_complete_path(it.path);
+	return backend.get_parameter_attribute(&it);
 }
 
 static int cwmp_handle_get_parameter_values(struct rpc_data *data)
@@ -733,7 +731,7 @@ static void cwmp_add_oui(node_t *node)
 	sprintf(it.path, "%s.DeviceInfo.ManufacturerOUI", CWMP_ROOT_OBJECT);
 
 	backend.get_parameter_values_init();
-	backend.get_parameter_value(&it, 0);
+	backend.get_parameter_value(&it);
 
 	if (backend.get_parameter_values)
 		backend.get_parameter_values(node, add_value_oui);
@@ -762,7 +760,7 @@ static void cwmp_add_device_id(node_t *node)
 	cur = it.path + sprintf(it.path, "%s.DeviceInfo.", CWMP_ROOT_OBJECT);
 	for (i = 0; i < ARRAY_SIZE(devid_params); i++) {
 		strcpy(cur, devid_params[i]);
-		backend.get_parameter_value(&it, 0);
+		backend.get_parameter_value(&it);
 	}
 
 	if (backend.get_parameter_values)
