@@ -1,5 +1,5 @@
 #!/bin/sh /etc/rc.common
-START=92
+START=99
 USE_PROCD=1
 
 start_service()
@@ -125,10 +125,11 @@ reload_service()
 	ubus -S call cwmp set_config "$(json_dump)"
 }
 
-boot() {
-	start
-	ubus -t 10 wait_for cwmp
-	ubus -S call cwmp event_add '{ "event": "1 BOOT" }'
+boot()
+{
+#	start
+#	ubus -t 10 wait_for cwmp
+#	ubus -S call cwmp event_add '{ "event": "1 BOOT" }'
 }
 
 service_triggers()
