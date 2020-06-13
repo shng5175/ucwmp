@@ -336,7 +336,7 @@ static int usp_get_parameter_names(struct cwmp_iterator *it, bool next_level)
 	return req.n_values;
 }
 
-static int usp_set_parameter_value(const char *path, const char *value)
+static int usp_set_parameter_value(const char *path, const char *value, const char *key)
 {
 	struct uspd_set_req req;
 	int err;
@@ -352,6 +352,7 @@ static int usp_set_parameter_value(const char *path, const char *value)
 	blob_buf_init(&uspd.buf, 0);
 	blobmsg_add_string(&uspd.buf, "path", path);
 	blobmsg_add_string(&uspd.buf, "value", value);
+	blobmsg_add_string(&uspd.buf, "key", key);
 	blobmsg_add_string(&uspd.buf, "proto", "cwmp");
 
 	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "set",

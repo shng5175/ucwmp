@@ -162,6 +162,7 @@ static int cwmp_handle_get_parameter_values(struct rpc_data *data)
 
 static int cwmp_handle_set_parameter_values(struct rpc_data *data)
 {
+	char key[32] = { 0, 0 };
 	char *name = NULL, *value = NULL, *type = NULL;
 	node_t *node, *cur_node;
 	struct {
@@ -175,6 +176,8 @@ static int cwmp_handle_set_parameter_values(struct rpc_data *data)
 	cur_node = soap_array_start(data->in, "ParameterList", &len);
 	if (!cur_node)
 		return CWMP_ERROR_INVALID_PARAM;
+
+	__soap_get_field(data->in, "ParameterKey", key, sizeof(key));
 
 	fault = alloca(len * sizeof(*fault));
 	while (soap_array_iterate(&cur_node, "ParameterValueStruct", &node)) {
@@ -193,7 +196,7 @@ static int cwmp_handle_set_parameter_values(struct rpc_data *data)
 		if (!name || !value) {
 			abort = true;
 		} else {
-			error = backend.set_parameter_value(name, value);
+			error = backend.set_parameter_value(name, value, key);
 			if (error) {
 				fault[n_fault].param = name;
 				fault[n_fault].code = error;
