@@ -298,12 +298,12 @@ static int usp_get_parameter(node_t *node, cwmp_iterator_cb cb, const char *meth
 
 static int usp_get_parameter_attributes(node_t *node, cwmp_iterator_cb cb)
 {
-	return usp_get_parameter(node, cb, "get_attributes");
+	return usp_get_parameter(node, cb, "get_safe_attributes");
 }
 
 static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
 {
-	return usp_get_parameter(node, cb, "get_safe");
+	return usp_get_parameter(node, cb, "get_safe_values");
 }
 
 static int usp_get_parameter_value(struct cwmp_iterator *it)
@@ -315,6 +315,7 @@ static int usp_get_parameter_value(struct cwmp_iterator *it)
 static int usp_get_parameter_names(struct cwmp_iterator *it, bool next_level)
 {
 	struct uspd_get_req req;
+	void *a;
 	int err;
 
 	if (!uspd_ctx_prepare(&uspd))
@@ -323,11 +324,13 @@ static int usp_get_parameter_names(struct cwmp_iterator *it, bool next_level)
 	uspd_get_req_init(&req, it, true);
 
 	blob_buf_init(&uspd.buf, 0);
-	blobmsg_add_string(&uspd.buf, "path", it->path);
+	a = blobmsg_open_array(&uspd.buf, "paths");
+	blobmsg_add_string(&uspd.buf, NULL, it->path);
+	blobmsg_close_array(&uspd.buf, a);
 	blobmsg_add_string(&uspd.buf, "proto", "cwmp");
 	blobmsg_add_u8(&uspd.buf, "next-level", next_level);
 
-	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "object_names",
+	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "get_safe_names",
 			uspd.buf.head, get_cb, &req, 10000);
 	if (err) {
 		err_ubus(err, "ubus_invoke " USP_UBUS " get path=%s", it->path);
