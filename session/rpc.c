@@ -228,7 +228,7 @@ static int cwmp_handle_set_parameter_values(struct rpc_data *data)
 		goto out;
 	}
 
-	node = soap_add_fault(data->out, CMWP_ERROR_INVALID_PARAM_VAL);
+	node = soap_add_fault(data->out, CWMP_ERROR_INVALID_ARGUMENTS);
 	for (i = 0; i < n_fault; i++) {
 		node_t *f = roxml_add_node(node, 0, ROXML_ELM_NODE, "SetParameterValuesFault", NULL);
 		roxml_add_node(f, 0, ROXML_ELM_NODE, "ParameterName", fault[i].param);
