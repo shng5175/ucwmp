@@ -418,6 +418,7 @@ static int cwmp_handle_delete_object(struct rpc_data *data)
 	char key[32] = { 0, 0 };
 	char status[32];
 	node_t *node = data->in;
+	int status_code;
 
 	__soap_get_field(node, "ObjectName", path, sizeof(path));
 	__soap_get_field(node, "ParameterKey", key, sizeof(key));
@@ -425,8 +426,13 @@ static int cwmp_handle_delete_object(struct rpc_data *data)
 	cwmp_complete_path(path);
 	node = roxml_add_node(data->out, 0, ROXML_ELM_NODE,
 				"cwmp:DeleteObjectResponse", NULL);
-	sprintf(status, "%d", backend.del_object(path, key));
-	roxml_add_node(node, 0, ROXML_ELM_NODE, "Status", status);
+	status_code = backend.del_object(path, key);
+	if (status_code <= 1) {
+		sprintf(status, "%d", status_code);
+		roxml_add_node(node, 0, ROXML_ELM_NODE, "Status", status);
+	} else {
+		soap_add_fault(node, status_code);
+	}
 	return 0;
 }
 
