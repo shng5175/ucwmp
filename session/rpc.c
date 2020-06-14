@@ -275,7 +275,6 @@ static int cwmp_handle_get_parameter_names(struct rpc_data *data)
 	node = roxml_add_node(data->out, 0, ROXML_ELM_NODE,
 				"cwmp:GetParameterNamesResponse", NULL);
 	it.node = cwmp_open_array(node, "ParameterList");
-	cwmp_complete_path(it.path);
 	n_params = backend.get_parameter_names(&it, next_level);
 	cwmp_close_array(it.node, n_params, "cwmp:ParameterInfoStruct");
 
