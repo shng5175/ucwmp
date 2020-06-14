@@ -89,7 +89,7 @@ static void uspd_add_req_init(struct uspd_add_req *r,
 				struct cwmp_iterator *it)
 {
 	r->it = it;
-	r->error = 0;
+	r->error = CWMP_ERROR_INTERNAL_ERROR;
 }
 
 static void uspd_del_req_init(struct uspd_del_req *r,
@@ -98,7 +98,7 @@ static void uspd_del_req_init(struct uspd_del_req *r,
 {
 	r->path = path;
 	r->key = key;
-	r->error = 0;
+	r->error = CWMP_ERROR_INTERNAL_ERROR;
 }
 
 static struct blob_attr * get_parameters(struct blob_attr *msg)
@@ -114,6 +114,13 @@ static struct blob_attr * get_parameters(struct blob_attr *msg)
 		}
 	}
 	return params;
+}
+
+static struct blob_attr * get_parameters_first_entry(struct blob_attr *msg)
+{
+	struct blob_attr *params = get_parameters(msg);
+
+	return params ? blobmsg_data(params) : NULL;
 }
 
 static void get_cb(struct ubus_request *req, int type, struct blob_attr *msg)
@@ -399,7 +406,9 @@ static void add_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	if ((cur = tb[P_ADD_INSTANCE]))
 		u.add_obj.instance_num = blobmsg_get_string(cur);
 
+	r->error = u.add_obj.status;
 	r->it->cb(r->it, &u);
+
 	cwmp_debug(1, "usp", "Add Obejct '%s' instance '%s' status '%d'\n",
 		  r->it->path, u.add_obj.instance_num, u.add_obj.status);
 }
@@ -446,7 +455,11 @@ static void del_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	struct uspd_del_req *r = req->priv;
 	struct blob_attr *tb[__P_DEL_MAX];
 	struct blob_attr *cur;
-	int err = -1;
+	int err = CWMP_ERROR_INVALID_PARAM;
+
+	msg = get_parameters_first_entry(msg);
+	if (msg == NULL)
+		goto out;
 
 	blobmsg_parse(p, __P_DEL_MAX, tb, blobmsg_data(msg), blobmsg_len(msg));
 
@@ -458,6 +471,7 @@ static void del_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	if ((cur = tb[P_DEL_FAULT]))
 		err = blobmsg_get_u32(cur);
 
+out:
 	r->error = err;
 
 	cwmp_debug(1, "usp", "Del Obejct '%s' key '%s' status '%d'\n",
