@@ -24,7 +24,14 @@ struct uspd_get_req {
 struct uspd_set_req {
 	const char *path;
 	const char *value;
-	unsigned error;
+	int error;
+};
+
+struct uspd_set_attrib_req {
+	node_t *node;
+	cwmp_iterator_cb cb;
+	unsigned n_values;
+	int fault;
 };
 
 struct uspd_add_req {
@@ -74,6 +81,16 @@ static void uspd_set_req_init(struct uspd_set_req *r,
 	r->path = path;
 	r->value = value;
 	r->error = CWMP_ERROR_INTERNAL_ERROR;
+}
+
+static void uspd_set_attrib_req_init(struct uspd_set_attrib_req *r,
+				node_t *node,
+				cwmp_iterator_cb cb)
+{
+	r->node = node;
+	r->cb = cb;
+	r->n_values = 0;
+	r->fault = 0;
 }
 
 static void uspd_get_req_init(struct uspd_get_req *r,
@@ -213,6 +230,57 @@ static void get_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 	}
 }
 
+static void set_attrib_cb(struct ubus_request *req, int type, struct blob_attr *msg)
+{
+	enum {
+		P_PATH,
+		P_FAULT,
+		__P_MAX
+	};
+	static const struct blobmsg_policy p[__P_MAX] = {
+		{ "path", BLOBMSG_TYPE_STRING },
+		{ "fault", BLOBMSG_TYPE_INT32 }
+	};
+	struct uspd_set_attrib_req *r = req->priv;
+	struct blob_attr *cur;
+	struct blob_attr *params;
+	int rem;
+
+	params = get_parameters(msg);
+	if (params == NULL)
+		return;
+
+	blobmsg_for_each_attr(cur, params, rem) {
+		struct blob_attr *tb[__P_MAX];
+		union cwmp_any a;
+
+		blobmsg_parse(p, __P_MAX, tb,
+				blobmsg_data(cur), blobmsg_len(cur));
+
+		if (tb[P_PATH])
+			a.param.path = blobmsg_get_string(tb[P_PATH]);
+		else
+			a.param.path = "";
+
+		if (tb[P_FAULT])
+			a.param.fault = blobmsg_get_u32(tb[P_FAULT]);
+		else
+			a.param.fault = 0;
+
+		cwmp_debug(1, "usp", "set parameter '%s' fault %d\n",
+			  a.param.path, a.param.fault);
+
+		r->cb(NULL, &a);
+		r->n_values += 1;
+
+		/* attributes only */
+		if (a.param.fault) {
+			r->fault = a.param.fault;
+			break;
+		}
+	}
+}
+
 static void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
 	enum {
@@ -304,6 +372,41 @@ static int usp_get_parameter_attributes(node_t *node, cwmp_iterator_cb cb)
 static int usp_get_parameter_values(node_t *node, cwmp_iterator_cb cb)
 {
 	return usp_get_parameter(node, cb, "get_safe_values");
+}
+
+static int usp_set_parameter_attributes(node_t *node, cwmp_iterator_cb cb)
+{
+	struct uspd_set_attrib_req req;
+	int err;
+
+	blobmsg_close_array(&uspd.buf, uspd.array);
+
+	if (!uspd_ctx_prepare(&uspd))
+		return 0;
+
+	uspd_set_attrib_req_init(&req, node, cb);
+
+	blobmsg_add_string(&uspd.buf, "proto", "cwmp");
+
+	err = ubus_invoke(uspd.ubus_ctx, uspd.uspd_id, "set_safe_attributes",
+			uspd.buf.head, set_attrib_cb, &req, 10000);
+	if (err) {
+		err_ubus(err, "ubus_invoke " USP_UBUS " set_safe_attributes");
+		uspd.prepared = 0;
+	}
+	return req.fault;
+}
+
+static int usp_set_parameter_attribute(const char *path, const char *notif_change, const char *notif_value)
+{
+	void *t = blobmsg_open_table(&uspd.buf, NULL);
+
+	blobmsg_add_string(&uspd.buf, "path", path);
+	blobmsg_add_string(&uspd.buf, "value", notif_value);
+	blobmsg_add_string(&uspd.buf, "change", notif_change);
+	blobmsg_close_table(&uspd.buf, t);
+
+	return 0;
 }
 
 static int usp_get_parameter_value(struct cwmp_iterator *it)
@@ -522,6 +625,10 @@ const struct backend backend = {
 	.get_parameter_attributes_init = usp_get_parameter_values_init,
 	.get_parameter_attribute = usp_get_parameter_value,
 	.get_parameter_attributes = usp_get_parameter_attributes,
+
+	.set_parameter_attributes_init = usp_get_parameter_values_init,
+	.set_parameter_attribute = usp_set_parameter_attribute,
+	.set_parameter_attributes = usp_set_parameter_attributes,
 
 	.add_object = usp_add_object,
 	.del_object = usp_del_object,

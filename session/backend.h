@@ -17,6 +17,7 @@ struct b_cwmp_param {
 	const char *name;
 	const char *value;
 	const char *type;
+	int fault;
 	bool writeable;
 };
 
@@ -62,14 +63,25 @@ static inline void cwmp_iterator_init(struct cwmp_iterator *it)
 struct backend {
 	void (*init)(struct ubus_context *ctx);
 	void (*deinit)();
+
 	int (*get_parameter_names)(struct cwmp_iterator *it, bool next_level);
+
+	void (*get_parameter_values_init)();
 	int (*get_parameter_value)(struct cwmp_iterator *it);
-	int (*set_parameter_value)(const char *path, const char *value, const char *key);
 	int (*get_parameter_values)(node_t *node, cwmp_iterator_cb cb);
+
+	int (*set_parameter_value)(const char *path, const char *value, const char *key);
+
+	void (*get_parameter_attributes_init)();
 	int (*get_parameter_attribute)(struct cwmp_iterator *it);
 	int (*get_parameter_attributes)(node_t *node, cwmp_iterator_cb cb);
-	void (*get_parameter_values_init)();
-	void (*get_parameter_attributes_init)();
+
+	void (*set_parameter_attributes_init)();
+	int (*set_parameter_attribute)(const char *path,
+					const char *notif_change,
+					const char *notif_value);
+	int (*set_parameter_attributes)(node_t *node, cwmp_iterator_cb cb);
+
 	int (*add_object)(struct cwmp_iterator *it, const char *key);
 	int (*del_object)(const char *path, const char *key);
 	int (*commit)();

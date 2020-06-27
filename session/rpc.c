@@ -69,6 +69,10 @@ static void add_parameter_value(struct cwmp_iterator *it, union cwmp_any *a)
 		cwmp_add_parameter_value_struct(it->node, it->path, p->value, p->type);
 }
 
+static void set_parameter_attrib(struct cwmp_iterator *it, union cwmp_any *a)
+{
+}
+
 static void add_parameter_attrib(struct cwmp_iterator *it, union cwmp_any *a)
 {
 	const struct b_cwmp_param *p = &a->param;
@@ -314,29 +318,25 @@ static int cwmp_handle_get_parameter_attributes(struct rpc_data *data)
 
 static int cwmp_set_param_attr(node_t *node)
 {
-	struct param_attr *attr;
-	char buf[CWMP_PATH_LEN];
-	bool val;
+	char path[CWMP_PATH_LEN];
+	char notif_change[2] = {};
+	char notif_value[2] = {};
+	int rc;
 
-	if (!__soap_get_field(node, "Name", buf, sizeof(buf)))
+	rc = !__soap_get_field(node, "Name", path, sizeof(path));
+	rc |= !__soap_get_field(node, "Notification",
+				notif_value, sizeof(notif_value));
+	if (rc)
 		return CWMP_ERROR_INVALID_PARAM;
 
-	attr = cwmp_attr_cache_get(buf, true);
-	if (!attr)
-		return CWMP_ERROR_INVALID_PARAM;
+	__soap_get_field(node, "NotificationChange",
+				notif_change, sizeof(notif_change));
 
-	if (!soap_get_boolean_field(node, "NotificationChange", &val) && val) {
-		int intval;
+	backend.set_parameter_attribute(path, notif_change, notif_value);
 
-		if (soap_get_int_field(node, "Notification", &intval))
-			return CWMP_ERROR_INVALID_PARAM;
-
-		if (intval > 6)
-			return CMWP_ERROR_INVALID_PARAM_VAL;
-
-		attr->notification = intval;
-	}
-
+	/* TODO: implement AccessList
+	 */
+#if 0
 	if (!soap_get_boolean_field(node, "AccessListChange", &val) && val) {
 		char *str;
 		node_t *cur;
@@ -349,6 +349,7 @@ static int cwmp_set_param_attr(node_t *node)
 				attr->acl_subscriber = true;
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -356,27 +357,27 @@ static int cwmp_set_param_attr(node_t *node)
 static int cwmp_handle_set_parameter_attributes(struct rpc_data *data)
 {
 	node_t *node, *cur_node;
-	int ret;
+	int fault;
 
 	cur_node = soap_array_start(data->in, "ParameterList", NULL);
 	if (!cur_node)
 		return CWMP_ERROR_INVALID_PARAM;
 
+	backend.set_parameter_attributes_init();
+
 	while (soap_array_iterate(&cur_node, "SetParameterAttributesStruct", &node)) {
-		ret = cwmp_set_param_attr(node);
-		if (ret) {
-			/* discard any changes and reload the attribute cache */
-			cwmp_attr_cache_load();
-			break;
-		}
+		fault = cwmp_set_param_attr(node);
+		if (fault)
+			goto out;
 	}
 
-	if (!ret)
-		cwmp_attr_cache_save();
+	if (backend.set_parameter_attributes)
+		fault = backend.set_parameter_attributes(node, set_parameter_attrib);
 
+out:
+	/* SetParameterValuesResponse is always empty*/
 	roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:SetParameterAttributesResponse", NULL);
-
-	return ret;
+	return fault;
 }
 
 static void add_object_response(struct cwmp_iterator *it, union cwmp_any *a)
