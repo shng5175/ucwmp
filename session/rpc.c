@@ -19,7 +19,6 @@
 #include <libubox/blobmsg.h>
 #include <libubox/blobmsg_json.h>
 
-#include "object.h"
 #include "soap.h"
 #include "rpc.h"
 #include "backend.h"

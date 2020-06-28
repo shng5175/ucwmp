@@ -20,7 +20,6 @@
 #include "soap.h"
 #include "rpc.h"
 #include "backend.h"
-#include "object.h"
 #include "../util.h"
 
 static struct ubus_context *ubus_ctx;
