@@ -28,7 +28,7 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(cwmp-session
-	session/main.c session/rpc.c session/soap.c session/attr.c
+	session/main.c session/rpc.c session/soap.c
 	session/builtin.c session/object.c session/${BACKEND_SRCS})
 
 ADD_EXECUTABLE(cwmpd main.c state.c ubus.c download.c cache.c)

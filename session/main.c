@@ -26,7 +26,6 @@
 
 #include "soap.h"
 #include "rpc.h"
-#include "attr.h"
 #include "backend.h"
 
 bool session_init = true;
@@ -375,11 +374,8 @@ int main(int argc, char **argv)
 
 	uloop_init();
 
-	while ((ch = getopt(argc, argv, "a:d:e:u:p:")) != -1) {
+	while ((ch = getopt(argc, argv, "d:e:u:p:")) != -1) {
 		switch (ch) {
-		case 'a':
-			attr_cache_file = optarg;
-			break;
 		case 'd':
 			debug_level = atoi(optarg);
 			break;

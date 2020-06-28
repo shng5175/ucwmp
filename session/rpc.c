@@ -22,7 +22,6 @@
 #include "object.h"
 #include "soap.h"
 #include "rpc.h"
-#include "attr.h"
 #include "backend.h"
 
 struct blob_buf events = {};
@@ -83,6 +82,7 @@ static void add_parameter_attrib(struct cwmp_iterator *it, union cwmp_any *a)
 	roxml_add_node(node, 0, ROXML_ELM_NODE, "Name", (char *)path);
 	roxml_add_node(node, 0, ROXML_ELM_NODE, "Notification", (char *)p->value);
 
+	/* TODO: implement access list */
 #if 0
 	node = cwmp_open_array(node, "AccessList");
 	if (attr->acl_subscriber)
@@ -623,8 +623,10 @@ static void cwmp_add_inform_parameters(node_t *node)
 	if (backend.get_parameter_values)
 		n = backend.get_parameter_values(node, add_parameter_value);
 
+#if 0
 	n += cwmp_attr_cache_add_changed(node);
 	cwmp_close_array(node, n, "ParameterValueStruct");
+#endif
 }
 
 static int
@@ -672,7 +674,7 @@ static int cwmp_add_event_blob(node_t *node, struct blob_attr *ev)
 	return cwmp_add_event(node, blobmsg_data(ev_attr[0]), val, ev_attr[2]);
 }
 
-static void cwmp_add_inform_events(node_t *node, bool changed)
+static void cwmp_add_inform_events(node_t *node)
 {
 	struct blob_attr *ev = NULL;
 	int n = 0;
@@ -688,8 +690,7 @@ static void cwmp_add_inform_events(node_t *node, bool changed)
 			n += cwmp_add_event_blob(node, cur);
 	}
 
-	if (changed)
-		n += cwmp_add_event(node, "4 VALUE CHANGED", "", NULL);
+	/* TODO: add "4 VALUE CHANGED" events */
 
 	cwmp_close_array(node, n, "EventStruct");
 }
@@ -782,13 +783,11 @@ int cwmp_session_init(struct rpc_data *data)
 {
 	time_t now = time(NULL);
 	node_t *node;
-	bool changed;
 
-	changed = cwmp_attr_cache_load();
 	node = roxml_add_node(data->out, 0, ROXML_ELM_NODE, "cwmp:Inform", NULL);
 
 	cwmp_add_device_id(node);
-	cwmp_add_inform_events(node, changed);
+	cwmp_add_inform_events(node);
 	roxml_add_node(node, 0, ROXML_ELM_NODE, "MaxEnvelopes", "1");
 	soap_add_time(node, "CurrentTime", localtime(&now));
 	roxml_add_node(node, 0, ROXML_ELM_NODE, "RetryCount", "0");
