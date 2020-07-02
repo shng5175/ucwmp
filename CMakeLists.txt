@@ -31,7 +31,7 @@ ADD_EXECUTABLE(cwmp-session
 	session/main.c session/rpc.c session/soap.c
 	session/builtin.c session/${BACKEND_SRCS})
 
-ADD_EXECUTABLE(cwmpd main.c state.c ubus.c download.c cache.c)
+ADD_EXECUTABLE(cwmpd main.c state.c ubus.c download.c)
 ADD_EXECUTABLE(connreq connreq.c)
 
 find_library(json NAMES json-c json)
