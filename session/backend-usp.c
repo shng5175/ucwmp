@@ -402,8 +402,8 @@ static int usp_set_parameter_attribute(const char *path, const char *notif_chang
 	void *t = blobmsg_open_table(&uspd.buf, NULL);
 
 	blobmsg_add_string(&uspd.buf, "path", path);
-	blobmsg_add_string(&uspd.buf, "value", notif_value);
-	blobmsg_add_string(&uspd.buf, "change", notif_change);
+	blobmsg_add_string(&uspd.buf, "notify-type", notif_value);
+	blobmsg_add_string(&uspd.buf, "notify", notif_change);
 	blobmsg_close_table(&uspd.buf, t);
 
 	return 0;
