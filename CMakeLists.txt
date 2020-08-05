@@ -5,7 +5,7 @@ INCLUDE(CheckIncludeFiles)
 PROJECT(ucwmp C)
 ADD_DEFINITIONS(-Os -Wall -Werror --std=gnu99 -g3 -Wmissing-declarations -I${CMAKE_SOURCE_DIR})
 
-set(BACKEND "usp" CACHE STRING "Backend to use: usp|scal")
+set(BACKEND "bbfd" CACHE STRING "Backend to use: usp|scal|bbfd")
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
@@ -23,8 +23,10 @@ IF (BACKEND STREQUAL scal)
   SET(BACKEND_SRCS backend-scal.c)
 ELSEIF(BACKEND STREQUAL usp)
   SET(BACKEND_SRCS backend-usp.c)
+ELSEIF(BACKEND STREQUAL bbfd)
+  SET(BACKEND_SRCS backend-bbfd.c)
 ELSE()
-  MESSAGE(FATAL_ERROR "No Backend selected. Available: usp,scal")
+  MESSAGE(FATAL_ERROR "No Backend selected. Available: usp,scal,bbfd")
 ENDIF()
 
 ADD_EXECUTABLE(cwmp-session

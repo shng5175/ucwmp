@@ -23,7 +23,8 @@ define Package/ucwmp
   DEPENDS:=+libubox +uhttpd +libroxml +libuclient +uclient-fetch \
 	+libustream-mbedtls +ca-certificates \
 	+UCWMP_BACKEND_SCAL:scal-plugin-json \
-	+UCWMP_BACKEND_USP:uspd
+	+UCWMP_BACKEND_USP:uspd \
+	+UCWMP_BACKEND_BBFD:bbfd
 endef
 
 define Package/ucwmp/config
@@ -33,13 +34,21 @@ config UCWMP_BACKEND_SCAL
 
 config UCWMP_BACKEND_USP
 	bool "Use uspd as backend"
+	default n
+
+config UCWMP_BACKEND_BBFD
+	bool "Use bbfd as backend"
 	default y
 endef
 
 ifeq ($(CONFIG_UCWMP_BACKEND_SCAL),y)
 	CMAKE_OPTIONS += -DBACKEND=scal
-else
+endif
+ifeq ($(CONFIG_UCWMP_BACKEND_USP),y)
 	CMAKE_OPTIONS += -DBACKEND=usp
+endif
+ifeq ($(CONFIG_UCWMP_BACKEND_BBFD),y)
+	CMAKE_OPTIONS += -DBACKEND=bbfd
 endif
 
 define Package/ucwmp/conffiles
