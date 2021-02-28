@@ -16,4 +16,4 @@ config cpe cpe
 
 config cwmp cwmp
 	option enabled 1
-	option debug 1
+	option debug 0
